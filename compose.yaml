@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: 'mysql:latest'
+    container_name: 'mysql-weather-app'
+    environment:
+      - 'MYSQL_DATABASE=weatherapp'
+      - 'MYSQL_PASSWORD=secret'
+      - 'MYSQL_ROOT_PASSWORD=pass'
+      - 'MYSQL_USER=myuser'
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql:/var/lib/mysql
+
+volumes:
+  mysql:
