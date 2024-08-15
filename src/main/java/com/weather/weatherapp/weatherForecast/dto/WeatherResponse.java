@@ -13,6 +13,8 @@ public record WeatherResponse(
         @JsonProperty("main")
         TemperatureDTO temp,
         @JsonProperty("visibility")
-        int visibility
+        int visibility,
+        @JsonProperty("wind")
+        WindDTO wind
 ) {
 }

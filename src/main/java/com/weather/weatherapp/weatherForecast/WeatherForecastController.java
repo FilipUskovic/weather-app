@@ -1,10 +1,9 @@
 package com.weather.weatherapp.weatherForecast;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("api/weather")
@@ -16,10 +15,7 @@ public class WeatherForecastController {
         this.weatherForecastService = weatherForecastService;
     }
 
-    @GetMapping("home")
-    public String hi (){
-        return "hello";
-    }
+
 
     @GetMapping("/current/{city}")
     public ResponseEntity<WeatherForecastEntity> getCurrentWeather(@PathVariable String city) {
@@ -28,6 +24,37 @@ public class WeatherForecastController {
     }
 
 
+    // 1. API treba evolvirati zasebno od database seme
+    // 2. Trebamo sakriti neke podatke od korisnika
+    // 3.  Trebamo dodatna polja ili modficiratu podatke za api
+    @GetMapping("/hourly/{city}")
+    public ResponseEntity<List<WeatherForecastEntity>> getHourlyForecast(@PathVariable String city) {
+        List<WeatherForecastEntity> foreCast = weatherForecastService.getHourly(city);
+        System.out.println("foreCast " + foreCast);
+        return foreCast.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(foreCast);
+    }
+
+    @GetMapping("/daily/{city}")
+    public ResponseEntity<List<WeatherForecastEntity>> getDailyForecast(@PathVariable String city) {
+        return ResponseEntity.ok(weatherForecastService.getDaily(city));
+    }
+
+    @PostMapping("/favorite")
+    public ResponseEntity<Void> addFavoriteCity(@RequestParam String username, @RequestParam String city) {
+        weatherForecastService.addFavoriteCity(username, city);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/favorite")
+    public ResponseEntity<Void> removeFavoriteCity(@RequestParam String username, @RequestParam String city) {
+        weatherForecastService.removeFavoriteCity(username, city);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/favorites")
+    public ResponseEntity<List<WeatherForecastEntity>> getFavoritesCitiesWeather(@RequestParam String username) {
+        return ResponseEntity.ok(weatherForecastService.getFavoritesCitiesWeather(username));
+    }
 
 
 }

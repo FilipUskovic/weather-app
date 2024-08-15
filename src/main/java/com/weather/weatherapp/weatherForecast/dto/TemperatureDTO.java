@@ -1,6 +1,12 @@
 package com.weather.weatherapp.weatherForecast.dto;
 
-public record TemperatureDTO(float temp) {
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record TemperatureDTO(float temp,
+                             int humidity,
+                             int pressure,
+                             @JsonProperty("feels_like")
+                             float feelsLike) {
 
 
 }
