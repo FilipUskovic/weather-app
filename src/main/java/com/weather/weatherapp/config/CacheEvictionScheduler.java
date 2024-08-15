@@ -1,5 +1,4 @@
 package com.weather.weatherapp.config;
-
 import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
