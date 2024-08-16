@@ -1,10 +1,9 @@
 package com.weather.weatherapp.user;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
@@ -16,14 +15,26 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/favorite")
-    public ResponseEntity<Void> addFavoriteCity(@RequestParam String city, @RequestParam String username) {
-        userService.addFavoriteCity(city,username);
+    @PostMapping
+    public ResponseEntity<UserEntity> createUser(@RequestParam String username) {
+        return ResponseEntity.ok(userService.createUser(username));
+    }
+
+    @PostMapping("/{username}/favorites")
+    public ResponseEntity<Void> addFavoriteCity(@PathVariable String username, @RequestParam String city) {
+        userService.addFavoriteCity(username, city);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/add-user")
-    public UserEntity addUser(@RequestParam String username){
-       return userService.createUser(username);
+    @DeleteMapping("/{username}/remove-favorites")
+    public ResponseEntity<Void> removeFavoriteCity(@PathVariable String username, @RequestParam String city) {
+        userService.removeFavoriteCity(username, city);
+        return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/{username}/favorites")
+    public ResponseEntity<List<String>> getFavoriteCities(@PathVariable String username) {
+        return ResponseEntity.ok(userService.getFavoriteCities(username));
+    }
+
 }

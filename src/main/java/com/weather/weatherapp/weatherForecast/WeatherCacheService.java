@@ -1,5 +1,6 @@
 package com.weather.weatherapp.weatherForecast;
 
+import com.weather.weatherapp.city.CityEntity;
 import com.weather.weatherapp.weatherForecast.dto.Coordinates;
 import com.weather.weatherapp.weatherForecast.dto.WeatherResponse;
 import org.springframework.cache.annotation.CacheEvict;
@@ -48,7 +49,7 @@ public class WeatherCacheService {
     }
 
     @Cacheable(value = "coordinates", key = "#city", unless = "#result == null")
-    public Coordinates getCachedCoordinates(String city) {
+    public Coordinates getCachedCoordinates(CityEntity city) {
         return weatherService.getCordinates(city);
     }
 
@@ -91,7 +92,7 @@ public class WeatherCacheService {
     }
 
     @CachePut(value = "coordinates", key = "#city")
-    public Coordinates refreshCoordinates(String city) {
+    public Coordinates refreshCoordinates(CityEntity city) {
         Coordinates freshData = weatherService.getCordinates(city);
         System.out.println("Refreshed coordinates for " + city);
         return freshData;

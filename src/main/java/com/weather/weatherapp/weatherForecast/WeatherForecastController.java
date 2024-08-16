@@ -39,22 +39,21 @@ public class WeatherForecastController {
         return ResponseEntity.ok(weatherForecastService.getDaily(city));
     }
 
-    @PostMapping("/favorite")
-    public ResponseEntity<Void> addFavoriteCity(@RequestParam String username, @RequestParam String city) {
-        weatherForecastService.addFavoriteCity(username, city);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping("/favorite")
-    public ResponseEntity<Void> removeFavoriteCity(@RequestParam String username, @RequestParam String city) {
-        weatherForecastService.removeFavoriteCity(username, city);
-        return ResponseEntity.ok().build();
-    }
-
     @GetMapping("/favorites")
     public ResponseEntity<List<WeatherForecastEntity>> getFavoritesCitiesWeather(@RequestParam String username) {
         return ResponseEntity.ok(weatherForecastService.getFavoritesCitiesWeather(username));
     }
 
+    @PostMapping("/favorites")
+    public ResponseEntity<Void> addFavoriteCity(@RequestParam String username, @RequestParam String city) {
+        weatherForecastService.addFavoriteCity(username, city);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/favorites")
+    public ResponseEntity<Void> removeFavoriteCity(@RequestParam String username, @RequestParam String city) {
+        weatherForecastService.removeFavoriteCity(username, city);
+        return ResponseEntity.ok().build();
+    }
 
 }

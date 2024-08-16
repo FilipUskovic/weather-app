@@ -1,5 +1,7 @@
 package com.weather.weatherapp.weatherForecast;
 
+import com.weather.weatherapp.city.CityEntity;
+import com.weather.weatherapp.city.CityService;
 import com.weather.weatherapp.user.UserService;
 import com.weather.weatherapp.weatherForecast.dto.*;
 import org.slf4j.Logger;
@@ -39,19 +41,21 @@ public class WeatherForecastService {
     private final String openUvKey;
     private final TransactionTemplate transactionTemplate;
     private final UserService userService;
+    private final CityService cityService;
 
 
 
     public WeatherForecastService(WeatherForecastRepository weatherForecastRepository,
                                   RestTemplate restTemplate,
                                   @Value("${weather_api_key}") String apiKey,
-                                  @Value("${open_UV_index}") String openUvKey, TransactionTemplate transactionTemplate, UserService userService) {
+                                  @Value("${open_UV_index}") String openUvKey, TransactionTemplate transactionTemplate, UserService userService, CityService cityService) {
         this.forecastRepository = weatherForecastRepository;
         this.restTemplate = restTemplate;
         this.apiKey = apiKey;
         this.openUvKey = openUvKey;
         this.transactionTemplate = transactionTemplate;
         this.userService = userService;
+        this.cityService = cityService;
     }
 
 
@@ -61,8 +65,9 @@ public class WeatherForecastService {
     // TODO: dodati koridante za opemMeteo ako ne radi kordiante opemWeeather tj ako se ne moze pronaci grad
 
     @Transactional
-    public WeatherForecastEntity getWeather(String city) {
-        WeatherResponse responseWeather = fetchWeatherData(city);
+    public WeatherForecastEntity getWeather(String cityName) {
+        CityEntity city = cityService.getOrCreateCity(cityName);
+        WeatherResponse responseWeather = fetchWeatherData(cityName);
         System.out.println("weather response " + responseWeather);
         float uvIndex = fetchUVData(responseWeather.cords().lat(), responseWeather.cords().lng());
         WeatherForecastEntity forecast = WeatherMapper.toWeatherForecast(city, responseWeather, uvIndex);
@@ -72,23 +77,25 @@ public class WeatherForecastService {
 
     @Transactional
     public List<WeatherForecastEntity> getHourly(String city){
+        CityEntity cityEntity = cityService.getOrCreateCity(city);
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime end = now.plusHours(24);
         Optional<List<WeatherForecastEntity>> existingForeCastOpt =
-                forecastRepository.findByCityAndForecastTypeAndDateTimeBetween(city, ForecastType.HOURLY, now, end);
+                forecastRepository.findByCityAndForecastTypeAndDateTimeBetween(String.valueOf(cityEntity), ForecastType.HOURLY, now, end);
         if(existingForeCastOpt.isPresent() && !existingForeCastOpt.get().isEmpty()){
             log.info("Returning existing hourly forecasts for {}", city);
             return existingForeCastOpt.get();
         }else {
             log.info("Fetching new hourly forecasts for {}", city);
-            return fetchAndSaveHourlyForecast(city);
+            return fetchAndSaveHourlyForecast(cityEntity);
         }
     }
 
 
 
     @Transactional(readOnly = true)
-    public List<WeatherForecastEntity> getDaily(String city) {
+    public List<WeatherForecastEntity> getDaily(String cityName) {
+        CityEntity city = cityService.getOrCreateCity(cityName);
         LocalDate now = LocalDate.now();
         LocalDate end = now.plusDays(7);
 
@@ -97,12 +104,12 @@ public class WeatherForecastService {
 
 
         Optional<List<WeatherForecastEntity>> existingForecastOpt =
-                forecastRepository.findByCityAndForecastTypeAndDateTimeBetween(city, ForecastType.DAILY, startDateTime, endDateTime);
+                forecastRepository.findByCityAndForecastTypeAndDateTimeBetween(String.valueOf(city), ForecastType.DAILY, startDateTime, endDateTime);
         if (existingForecastOpt.isPresent() && !existingForecastOpt.get().isEmpty()) {
-            log.info("Returning existing daily forecasts for {}", city);
+            log.info("Returning existing daily forecasts for {}", cityName);
             return existingForecastOpt.get();
         } else {
-            log.info("Fetching new daily forecasts for {}", city);
+            log.info("Fetching new daily forecasts for {}", cityName);
             return fetchAndSaveDailyForecast(city);
         }
     }
@@ -110,10 +117,18 @@ public class WeatherForecastService {
 
     @Transactional(readOnly = true)
     public List<WeatherForecastEntity> getFavoritesCitiesWeather(String username) {
-        List<String> favoriteCities = userService.getFavoriteCities(username);
-        return favoriteCities.stream()
-                .map(this::getWeather)
-                .collect(Collectors.toList());
+        return transactionTemplate.execute(status -> {
+            try {
+                List<String> favoriteCities = userService.getFavoriteCities(username);
+                return favoriteCities.stream()
+                        .map(this::getWeather)
+                        .collect(Collectors.toList());
+            } catch (Exception e) {
+                log.warn("failed to get faforits cities data za username-a{}", username);
+            }
+            return List.of();
+        });
+
     }
 
     @Transactional
@@ -126,10 +141,10 @@ public class WeatherForecastService {
         userService.removeFavoriteCity(username, city);
     }
 
-    protected List<WeatherForecastEntity> fetchAndSaveDailyForecast(String city) {
+    protected List<WeatherForecastEntity> fetchAndSaveDailyForecast(CityEntity city) {
         return transactionTemplate.execute(status -> {
             try {
-                WeatherResponse weatherResponse = fetchWeatherData(city);
+                WeatherResponse weatherResponse = fetchWeatherData(city.getName());
                 log.info("Weather response daily for {}: {}", city, weatherResponse);
                 return fetchAndSaveDailyForecastWithCoordinates(city, weatherResponse.cords().lat(), weatherResponse.cords().lng());
             } catch (Exception e) {
@@ -145,7 +160,7 @@ public class WeatherForecastService {
         });
     }
 
-    private List<WeatherForecastEntity> fetchAndSaveDailyForecastWithCoordinates(String city, float lat, float lon) {
+    private List<WeatherForecastEntity> fetchAndSaveDailyForecastWithCoordinates(CityEntity city, float lat, float lon) {
         OpenMeteResponse dailyResponse = fetchOpenMeteoDailyData(lat, lon);
         log.info("Daily response: {}", dailyResponse);
         List<WeatherForecastEntity> forecasts = WeatherMapper.toDailyWeatherForecasts(city, dailyResponse);
@@ -170,9 +185,9 @@ public class WeatherForecastService {
         return response;
     }
 
-    private List<WeatherForecastEntity> fetchAndSaveHourlyForecast(String city) {
+    private List<WeatherForecastEntity> fetchAndSaveHourlyForecast(CityEntity city) {
         try {
-            WeatherResponse weatherResponse = fetchWeatherData(city);
+            WeatherResponse weatherResponse = fetchWeatherData(String.valueOf(city));
             log.info("Weather response for {}: {}", city, weatherResponse);
             return fetchAndSaveHourlyForecastWithCoordinates(city, weatherResponse.cords().lat(), weatherResponse.cords().lng());
         } catch (Exception e) {
@@ -184,7 +199,7 @@ public class WeatherForecastService {
 
 
 
-    private List<WeatherForecastEntity> fetchAndSaveHourlyForecastWithCoordinates(String city, float lat, float lon) {
+    private List<WeatherForecastEntity> fetchAndSaveHourlyForecastWithCoordinates(CityEntity city, float lat, float lon) {
         OpenMeteResponse hourlyResponse = fetchOpenMeteoHourlyData(lat, lon);
         log.info("Hourly response: {}", hourlyResponse);
         List<WeatherForecastEntity> forecasts = WeatherMapper.toHourlyWeatherForecasts(city, hourlyResponse);
@@ -243,8 +258,8 @@ public class WeatherForecastService {
         return uvResponse.result().uv();
     }
 
-    Coordinates getCordinates(String city){
-        String geocodingUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + city + "&count=1";
+    Coordinates getCordinates(CityEntity city){
+        String geocodingUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + city.getName() + "&count=1";
         ResponseEntity<OpenMeteoGoeCodingRes> restResponse = restTemplate.getForEntity(geocodingUrl, OpenMeteoGoeCodingRes.class);
         OpenMeteoGoeCodingRes geocodingResponse = restResponse.getBody();
         if (geocodingResponse == null || geocodingResponse.resultL().isEmpty()) {

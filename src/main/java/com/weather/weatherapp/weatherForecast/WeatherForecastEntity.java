@@ -38,7 +38,6 @@ public class WeatherForecastEntity {
     @Column(name = "pressure", nullable = false)
     private int pressure;
 
-
     public WeatherForecastEntity() {
     }
 

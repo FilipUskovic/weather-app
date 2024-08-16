@@ -1,5 +1,6 @@
 package com.weather.weatherapp.user;
 
+import com.weather.weatherapp.city.CityEntity;
 import jakarta.persistence.*;
 
 import java.util.HashSet;
@@ -12,21 +13,20 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String username;
 
-    @ElementCollection
-    @CollectionTable(name = "favorite_cities", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "city")
-    private Set<String> favoriteCities = new HashSet<>();
+    // TODO provjeriti ovo
+    @ManyToMany
+    @JoinTable(
+            name = "user_favorite_cities",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "city_id")
+    )
+    private Set<CityEntity> favoriteCities = new HashSet<>();
 
-    public UserEntity(Long id, String username, Set<String> favoriteCities) {
-        this.id = id;
-        this.username = username;
-        this.favoriteCities = favoriteCities;
-    }
 
-    public UserEntity() {
-    }
+    public UserEntity() {}
 
     public UserEntity(String username) {
         this.username = username;
@@ -48,19 +48,22 @@ public class UserEntity {
         this.username = username;
     }
 
-    public Set<String> getFavoriteCities() {
+    public Set<CityEntity> getFavoriteCities() {
         return favoriteCities;
     }
 
-    public void setFavoriteCities(Set<String> favoriteCities) {
+    public void setFavoriteCities(Set<CityEntity> favoriteCities) {
         this.favoriteCities = favoriteCities;
     }
 
-    public void addFavoriteCity(String city) {
-        this.favoriteCities.add(city);
+    // Pomoćne metode za upravljanje vezama
+    public void addFavoriteCity(CityEntity city) {
+        favoriteCities.add(city);
+        city.getUsers().add(this);
     }
 
-    public void removeFavoriteCity(String city) {
-        this.favoriteCities.remove(city);
+    public void removeFavoriteCity(CityEntity city) {
+        favoriteCities.remove(city);
+        city.getUsers().remove(this);
     }
 }
