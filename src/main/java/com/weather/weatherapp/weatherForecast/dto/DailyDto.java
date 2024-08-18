@@ -8,19 +8,19 @@ public record DailyDto(
         List<String> time,
         @JsonProperty("temperature_2m_max")
         List<Double> temperatureMax,
+        @JsonProperty("weather_code")
+        List<String> description,
      //   @JsonProperty("temperature_2m_min")
      //   List<Double> temperatureMin,
         @JsonProperty("apparent_temperature_max")
         List<Double> apparentTemperatureMax,
-   //     @JsonProperty("apparent_temperature_min")
-    //    List<Double> apparentTemperatureMin,
-      //  @JsonProperty("precipitation_sum")
-       // List<Double> precipitationSum,
+
         @JsonProperty("windspeed_10m_max")
         List<Double> windspeedMax,
         @JsonProperty("uv_index_max")
-        List<Double> uvIndexMax
-       // @JsonProperty("pressure_msl")
-        //List<Double> pressure
+        List<Double> uvIndexMax,
+        @JsonProperty("relative_humidity_2m_max")
+        List<Double> relativeHumidityMax
+
 ) {
 }

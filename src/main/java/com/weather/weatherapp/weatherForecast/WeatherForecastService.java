@@ -20,7 +20,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -67,8 +66,25 @@ public class WeatherForecastService {
 
     @Transactional
     public WeatherForecastEntity getWeather(String cityName) {
+       /*
+        CityEntity city = cityService.getOrCreateCity(cityName);
+        log.info("Retrieving weather for city {}", cityName);
+      //  LocalDateTime now = LocalDateTime.now();
+       // LocalDateTime end = now.plusHours(0);
+        Optional<WeatherForecastEntity> currentOptional = forecastRepository.findByCityAndForecastType(String.valueOf(city), ForecastType.CURRENT);
+        if(currentOptional.isPresent()){
+            log.info("Returning existing current forecasts for {}", city.getName());
+            return currentOptional.get();
+        }else {
+            log.info("Fetching new current forecasts for {}", city.getName());
+            return fetchAndSaveCurrentForecast(city);
+        }
+       */
         CityEntity city = cityService.getOrCreateCity(cityName);
         WeatherResponse responseWeather = fetchWeatherData(city);
+        if (responseWeather == null) {
+            throw new RuntimeException("Failed to fetch weather data for city: " + cityName);
+        }
         System.out.println("weather response " + responseWeather);
         float uvIndex = fetchUVData(responseWeather.cords().lat(), responseWeather.cords().lng());
         WeatherForecastEntity forecast = WeatherMapper.toWeatherForecast(city, responseWeather, uvIndex);
@@ -94,6 +110,7 @@ public class WeatherForecastService {
 
     @Transactional(readOnly = true)
     public List<WeatherForecastEntity> getDaily(String cityName) {
+        return transactionTemplate.execute(status -> {
         CityEntity city = cityService.getOrCreateCity(cityName);
         LocalDate now = LocalDate.now();
         LocalDate end = now.plusDays(7);
@@ -111,6 +128,7 @@ public class WeatherForecastService {
             log.info("Fetching new daily forecasts for {}", cityName);
             return fetchAndSaveDailyForecast(city);
         }
+        });
     }
 
 
@@ -172,7 +190,8 @@ public class WeatherForecastService {
         String url = UriComponentsBuilder.fromHttpUrl(openMeteoUrl)
                 .queryParam("latitude", lat)
                 .queryParam("longitude", lon)
-                .queryParam("daily", "temperature_2m_max,apparent_temperature_max,windspeed_10m_max,uv_index_max")
+                .queryParam("daily", "temperature_2m_max,weather_code,apparent_temperature_max,relative_humidity_2m_max,windspeed_10m_max,uv_index_max")
+                // .queryParam("daily", "temperature_2m_max,weather_code,apparent_temperature_max,windspeed_10m_max,uv_index_max")
                 .queryParam("forecast_days", 7)
                 .toUriString();
         log.info("Requesting OpenMeteo for 7 day data with URL: {}", url);
@@ -193,6 +212,19 @@ public class WeatherForecastService {
             return fetchAndSaveHourlyForecastWithCoordinates(city, coords.latitude(), coords.longitude());
         }
     }
+/*
+    private WeatherForecastEntity fetchAndSaveCurrentForecast(CityEntity city) {
+        try {
+            WeatherResponse weatherResponse = fetchWeatherData(city);
+            log.info("Weather response for current {}: {}", city.getName(), weatherResponse);
+            return fetchAndSaveCurrentForecastWithCoordinates(city, weatherResponse.cords().lat(), weatherResponse.cords().lng());
+        } catch (Exception e) {
+            log.warn("Failed to fetch weather data for  current {} from OpenWeatherMap, trying geolocation", city.getName());
+            Coordinates coords = getCordinates(city);
+            return fetchAndSaveCurrentForecastWithCoordinates(city, coords.latitude(), coords.longitude());
+        }
+    }
+ */
 
     private List<WeatherForecastEntity> fetchAndSaveHourlyForecastWithCoordinates(CityEntity city, float lat, float lon) {
         OpenMeteResponse hourlyResponse = fetchOpenMeteoHourlyData(lat, lon);
@@ -200,13 +232,20 @@ public class WeatherForecastService {
         List<WeatherForecastEntity> forecasts = WeatherMapper.toHourlyWeatherForecasts(city, hourlyResponse);
         return forecastRepository.saveAll(forecasts);
     }
-
+/*
+    private WeatherForecastEntity fetchAndSaveCurrentForecastWithCoordinates(CityEntity city, float lat, float lon) {
+        OpenMeteResponse current = fetchOpenMeteoCurentData(lat, lon);
+        log.info("Curent response: {}", current);
+        WeatherForecastEntity forecasts = WeatherMapper.toWeatherForecastt(city, current);
+        return forecastRepository.save(forecasts);
+    }
+*/
     private OpenMeteResponse fetchOpenMeteoHourlyData(float lat, float lon) {
         String openMeteoUrl = "https://api.open-meteo.com/v1/forecast?";
         String url = UriComponentsBuilder.fromHttpUrl(openMeteoUrl)
                 .queryParam("latitude", lat)
                 .queryParam("longitude", lon)
-                .queryParam("hourly", "temperature_2m,uv_index,relativehumidity_2m,apparent_temperature,windspeed_10m,pressure_msl,visibility")
+                .queryParam("hourly", "temperature_2m,weather_code,uv_index,relativehumidity_2m,apparent_temperature,windspeed_10m,pressure_msl,visibility")
                 .queryParam("forecast_days", 1)
                 .toUriString();
         log.info("Requesting OpenMeteo hourly data with URL: {}", url);
@@ -215,6 +254,23 @@ public class WeatherForecastService {
         log.info("Received OpenMeteo response: {}", response);
         return  response;
     }
+/*
+    private OpenMeteResponse fetchOpenMeteoCurentData(float lat, float lon) {
+        String openMeteoUrl = "https://api.open-meteo.com/v1/forecast?";
+        String url = UriComponentsBuilder.fromHttpUrl(openMeteoUrl)
+                .queryParam("latitude", lat)
+                .queryParam("longitude", lon)
+                .queryParam("hourly", "temperature_2m,uv_index,relativehumidity_2m,apparent_temperature,windspeed_10m,pressure_msl,visibility")
+                .queryParam("forecast_hours", 1)
+                .toUriString();
+        log.info("Requesting OpenMeteo current data with URL: {}", url);
+        OpenMeteResponse response = Optional.ofNullable(restTemplate.getForObject(url, OpenMeteResponse.class))
+                .orElseThrow(() -> new RuntimeException("Failed to fetch current forecast data"));
+        log.info("Received OpenMeteo current response: {}", response);
+        return  response;
+    }
+
+ */
 
     WeatherResponse fetchWeatherData(CityEntity city) {
         String weatherBaseUrl = "https://api.openweathermap.org/data/2.5/weather?";
@@ -255,8 +311,8 @@ public class WeatherForecastService {
         String geocodingUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + city.getName() + "&count=1";
         ResponseEntity<OpenMeteoGoeCodingRes> restResponse = restTemplate.getForEntity(geocodingUrl, OpenMeteoGoeCodingRes.class);
         OpenMeteoGoeCodingRes geocodingResponse = restResponse.getBody();
-
-        if (geocodingResponse == null || geocodingResponse.resultL().isEmpty() || !Objects.equals(geocodingResponse.name(), city.getName())) {
+//|| !Objects.equals(geocodingResponse.name(), city.getName())
+        if (geocodingResponse == null || geocodingResponse.resultL().isEmpty()) {
             throw new RuntimeException("City not found: " + city);
         }
 

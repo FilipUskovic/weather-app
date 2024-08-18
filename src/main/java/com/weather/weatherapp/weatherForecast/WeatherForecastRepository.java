@@ -19,7 +19,7 @@ public interface WeatherForecastRepository extends JpaRepository<WeatherForecast
 
     Optional<WeatherForecastEntity> findFirstByCityAndForecastTypeOrderByDateTimeDesc(String city, ForecastType forecastType);
 
-    List<WeatherForecastEntity> findByCityInAndForecastType(List<String> cities, ForecastType forecastType);
+    Optional <WeatherForecastEntity> findByCityAndForecastType(String cities, ForecastType forecastType);
 
 
     @Query("select weather from WeatherForecastEntity weather where weather.city =:city and weather.forecastType=:forecastType" +

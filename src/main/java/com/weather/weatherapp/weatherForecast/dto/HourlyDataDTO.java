@@ -8,6 +8,10 @@ public record HourlyDataDTO(
         List<String> time,
         @JsonProperty("temperature_2m")
         List<Double> temperature2m,
+        @JsonProperty("weather_code")
+        List<String> apperiance,
+        @JsonProperty("uv_index")
+        List<Double> uvIndex,
         @JsonProperty("relativehumidity_2m")
         List<Integer> relativeHumidity2m,
         @JsonProperty("apparent_temperature")
@@ -16,8 +20,7 @@ public record HourlyDataDTO(
         List<Double> windspeed10m,
         @JsonProperty("pressure_msl")
         List<Double> pressureMsl,
-        List<Integer> visibility,
-        @JsonProperty("uv_index")
-        List<Double> uvIndex
+        List<Integer> visibility
+
 ) {
 }

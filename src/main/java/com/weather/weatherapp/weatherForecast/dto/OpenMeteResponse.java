@@ -1,4 +1,4 @@
 package com.weather.weatherapp.weatherForecast.dto;
 
-public record OpenMeteResponse(HourlyDataDTO hourly ,DailyDto daily) {
+public record OpenMeteResponse(HourlyDataDTO hourly,DailyDto daily) {
 }
