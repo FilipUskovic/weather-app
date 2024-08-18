@@ -20,6 +20,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -67,7 +68,7 @@ public class WeatherForecastService {
     @Transactional
     public WeatherForecastEntity getWeather(String cityName) {
         CityEntity city = cityService.getOrCreateCity(cityName);
-        WeatherResponse responseWeather = fetchWeatherData(cityName);
+        WeatherResponse responseWeather = fetchWeatherData(city);
         System.out.println("weather response " + responseWeather);
         float uvIndex = fetchUVData(responseWeather.cords().lat(), responseWeather.cords().lng());
         WeatherForecastEntity forecast = WeatherMapper.toWeatherForecast(city, responseWeather, uvIndex);
@@ -90,8 +91,6 @@ public class WeatherForecastService {
             return fetchAndSaveHourlyForecast(cityEntity);
         }
     }
-
-
 
     @Transactional(readOnly = true)
     public List<WeatherForecastEntity> getDaily(String cityName) {
@@ -144,7 +143,7 @@ public class WeatherForecastService {
     protected List<WeatherForecastEntity> fetchAndSaveDailyForecast(CityEntity city) {
         return transactionTemplate.execute(status -> {
             try {
-                WeatherResponse weatherResponse = fetchWeatherData(city.getName());
+                WeatherResponse weatherResponse = fetchWeatherData(city);
                 log.info("Weather response daily for {}: {}", city, weatherResponse);
                 return fetchAndSaveDailyForecastWithCoordinates(city, weatherResponse.cords().lat(), weatherResponse.cords().lng());
             } catch (Exception e) {
@@ -168,8 +167,6 @@ public class WeatherForecastService {
     }
 
 
-
-
     private OpenMeteResponse fetchOpenMeteoDailyData(float lat, float lon) {
         String openMeteoUrl = "https://api.open-meteo.com/v1/forecast?";
         String url = UriComponentsBuilder.fromHttpUrl(openMeteoUrl)
@@ -187,7 +184,7 @@ public class WeatherForecastService {
 
     private List<WeatherForecastEntity> fetchAndSaveHourlyForecast(CityEntity city) {
         try {
-            WeatherResponse weatherResponse = fetchWeatherData(String.valueOf(city));
+            WeatherResponse weatherResponse = fetchWeatherData(city);
             log.info("Weather response for {}: {}", city, weatherResponse);
             return fetchAndSaveHourlyForecastWithCoordinates(city, weatherResponse.cords().lat(), weatherResponse.cords().lng());
         } catch (Exception e) {
@@ -197,16 +194,12 @@ public class WeatherForecastService {
         }
     }
 
-
-
     private List<WeatherForecastEntity> fetchAndSaveHourlyForecastWithCoordinates(CityEntity city, float lat, float lon) {
         OpenMeteResponse hourlyResponse = fetchOpenMeteoHourlyData(lat, lon);
         log.info("Hourly response: {}", hourlyResponse);
         List<WeatherForecastEntity> forecasts = WeatherMapper.toHourlyWeatherForecasts(city, hourlyResponse);
         return forecastRepository.saveAll(forecasts);
     }
-
-
 
     private OpenMeteResponse fetchOpenMeteoHourlyData(float lat, float lon) {
         String openMeteoUrl = "https://api.open-meteo.com/v1/forecast?";
@@ -223,10 +216,10 @@ public class WeatherForecastService {
         return  response;
     }
 
-    WeatherResponse fetchWeatherData(String city) {
+    WeatherResponse fetchWeatherData(CityEntity city) {
         String weatherBaseUrl = "https://api.openweathermap.org/data/2.5/weather?";
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(weatherBaseUrl)
-                .queryParam("q", city)
+                .queryParam("q", city.getName())
                 .queryParam("units", "metric")
                 .queryParam("appid", apiKey);
         return restTemplate.exchange(
@@ -262,7 +255,8 @@ public class WeatherForecastService {
         String geocodingUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + city.getName() + "&count=1";
         ResponseEntity<OpenMeteoGoeCodingRes> restResponse = restTemplate.getForEntity(geocodingUrl, OpenMeteoGoeCodingRes.class);
         OpenMeteoGoeCodingRes geocodingResponse = restResponse.getBody();
-        if (geocodingResponse == null || geocodingResponse.resultL().isEmpty()) {
+
+        if (geocodingResponse == null || geocodingResponse.resultL().isEmpty() || !Objects.equals(geocodingResponse.name(), city.getName())) {
             throw new RuntimeException("City not found: " + city);
         }
 

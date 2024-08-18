@@ -39,7 +39,7 @@ public class WeatherCacheService {
     }
 
     @Cacheable(value = "weatherData", key = "#city", unless = "#result == null")
-    public WeatherResponse getCachedWeatherData(String city) {
+    public WeatherResponse getCachedWeatherData(CityEntity city) {
         return weatherService.fetchWeatherData(city);
     }
 
@@ -78,7 +78,7 @@ public class WeatherCacheService {
 
     // Dodatne metode za selektivno osvježavanje drugih cache-ova
     @CachePut(value = "weatherData", key = "#city")
-    public WeatherResponse refreshWeatherData(String city) {
+    public WeatherResponse refreshWeatherData(CityEntity city) {
         WeatherResponse freshData = weatherService.fetchWeatherData(city);
         System.out.println("Refreshed weather data for " + city);
         return freshData;

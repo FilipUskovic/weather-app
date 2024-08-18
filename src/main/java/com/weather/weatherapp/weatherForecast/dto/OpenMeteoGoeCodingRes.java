@@ -6,5 +6,7 @@ import java.util.List;
 
 public record OpenMeteoGoeCodingRes(
         @JsonProperty("results")
-        List<GeosResult> resultL ) {
+        List<GeosResult> resultL ,
+        String name
+) {
 }

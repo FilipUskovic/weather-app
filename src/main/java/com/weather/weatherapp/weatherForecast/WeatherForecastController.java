@@ -30,7 +30,6 @@ public class WeatherForecastController {
     @GetMapping("/hourly/{city}")
     public ResponseEntity<List<WeatherForecastEntity>> getHourlyForecast(@PathVariable String city) {
         List<WeatherForecastEntity> foreCast = weatherForecastService.getHourly(city);
-        System.out.println("foreCast " + foreCast);
         return foreCast.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(foreCast);
     }
 
