@@ -1,7 +1,10 @@
 package com.weather.weatherapp.weatherForecast;
 
 import com.weather.weatherapp.city.CityEntity;
+import com.weather.weatherapp.city.CityRepository;
 import com.weather.weatherapp.city.CityService;
+import com.weather.weatherapp.user.UserEntity;
+import com.weather.weatherapp.user.UserRepository;
 import com.weather.weatherapp.user.UserService;
 import com.weather.weatherapp.weatherForecast.dto.*;
 import org.slf4j.Logger;
@@ -20,6 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -42,13 +46,15 @@ public class WeatherForecastService {
     private final TransactionTemplate transactionTemplate;
     private final UserService userService;
     private final CityService cityService;
+    private final UserRepository userRepository;
+    private final CityRepository cityRepository;
 
 
 
     public WeatherForecastService(WeatherForecastRepository weatherForecastRepository,
                                   RestTemplate restTemplate,
                                   @Value("${weather_api_key}") String apiKey,
-                                  @Value("${open_UV_index}") String openUvKey, TransactionTemplate transactionTemplate, UserService userService, CityService cityService) {
+                                  @Value("${open_UV_index}") String openUvKey, TransactionTemplate transactionTemplate, UserService userService, CityService cityService, UserRepository userRepository, CityRepository cityRepository) {
         this.forecastRepository = weatherForecastRepository;
         this.restTemplate = restTemplate;
         this.apiKey = apiKey;
@@ -56,6 +62,8 @@ public class WeatherForecastService {
         this.transactionTemplate = transactionTemplate;
         this.userService = userService;
         this.cityService = cityService;
+        this.userRepository = userRepository;
+        this.cityRepository = cityRepository;
     }
 
 
@@ -149,8 +157,30 @@ public class WeatherForecastService {
     }
 
     @Transactional
-    public void addFavoriteCity(String username, String city) {
-        userService.addFavoriteCity(username, city);
+    public void addFavoriteCity(String username, String cityName) {
+            log.info("Adding favorite city {} for user {}", cityName, username);
+
+            UserEntity user = userRepository.findByUsername(username)
+                    .orElseGet(() -> {
+                        log.info("User {} not found. Creating new user.", username);
+                        UserEntity newUser = new UserEntity();
+                        newUser.setUsername(username);
+                        return userRepository.save(newUser);
+                    });
+
+            CityEntity city = cityRepository.findByName(cityName)
+                    .orElseGet(() -> {
+                        CityEntity newCity = new CityEntity();
+                        newCity.setName(cityName);
+                        return cityRepository.save(newCity);
+                    });
+            if (!user.getFavoriteCities().contains(city)) {
+                user.getFavoriteCities().add(city);
+                userRepository.save(user);
+                log.info("Successfully added {} to favorites for user {}", cityName, username);
+            } else {
+                log.info("City {} is already a favorite for user {}", cityName, username);
+            }
     }
 
     @Transactional
@@ -311,8 +341,8 @@ public class WeatherForecastService {
         String geocodingUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + city.getName() + "&count=1";
         ResponseEntity<OpenMeteoGoeCodingRes> restResponse = restTemplate.getForEntity(geocodingUrl, OpenMeteoGoeCodingRes.class);
         OpenMeteoGoeCodingRes geocodingResponse = restResponse.getBody();
-//|| !Objects.equals(geocodingResponse.name(), city.getName())
-        if (geocodingResponse == null || geocodingResponse.resultL().isEmpty()) {
+
+        if (geocodingResponse == null || geocodingResponse.resultL().isEmpty() || !Objects.equals(geocodingResponse.name(), city.getName())) {
             throw new RuntimeException("City not found: " + city);
         }
 
