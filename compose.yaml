@@ -12,5 +12,37 @@ services:
     volumes:
       - mysql:/var/lib/mysql
 
+  redis:
+    image: 'redis:alpine'
+    container_name: 'redis-weather-app'
+    ports:
+      - '6379:6379'
+#redis web gui
+  redis_commander:
+    image: rediscommander/redis-commander:latest
+    container_name: 'redis-commander'
+    ports:
+      - '8081:8081'
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+
 volumes:
   mysql:
+#####
+#services:
+#  mysql:
+#    image: 'mysql:latest'
+#    container_name: 'mysql-weather-app'
+#    environment:
+#      - 'MYSQL_DATABASE=weatherapp'
+#      - 'MYSQL_PASSWORD=secret'
+#      - 'MYSQL_ROOT_PASSWORD=pass'
+#      - 'MYSQL_USER=myuser'
+#    ports:
+#      - '3306:3306'
+#    volumes:
+#      - mysql:/var/lib/mysql
+#volumes:
+#  mysql:

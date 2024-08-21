@@ -3,11 +3,14 @@ package com.weather.weatherapp.weatherForecast;
 import com.weather.weatherapp.city.CityEntity;
 import com.weather.weatherapp.city.CityRepository;
 import com.weather.weatherapp.city.CityService;
+import com.weather.weatherapp.config.caching.CachingRedisService;
 import com.weather.weatherapp.user.Role;
 import com.weather.weatherapp.user.UserEntity;
 import com.weather.weatherapp.user.UserRepository;
 import com.weather.weatherapp.user.UserService;
 import com.weather.weatherapp.weatherForecast.dto.*;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,13 +54,23 @@ public class WeatherForecastService {
     private final CityService cityService;
     private final UserRepository userRepository;
     private final CityRepository cityRepository;
+    private final CachingRedisService cacheService;
+    private static final String CACHE_KEY_PREFIX = "weather:";
+    private static final long CACHE_TTL = 3600; // 1 sat u sekunda
+    private final MeterRegistry meterRegistry;
 
 
 
     public WeatherForecastService(WeatherForecastRepository weatherForecastRepository,
                                   RestTemplate restTemplate,
                                   @Value("${weather_api_key}") String apiKey,
-                                  @Value("${open_UV_index}") String openUvKey, TransactionTemplate transactionTemplate, UserService userService, CityService cityService, UserRepository userRepository, CityRepository cityRepository) {
+                                  @Value("${open_UV_index}") String openUvKey,
+                                  TransactionTemplate transactionTemplate,
+                                  UserService userService,
+                                  CityService cityService,
+                                  UserRepository userRepository,
+                                  CityRepository cityRepository,
+                                  CachingRedisService cacheService, MeterRegistry meterRegistry) {
         this.forecastRepository = weatherForecastRepository;
         this.restTemplate = restTemplate;
         this.apiKey = apiKey;
@@ -67,6 +80,8 @@ public class WeatherForecastService {
         this.cityService = cityService;
         this.userRepository = userRepository;
         this.cityRepository = cityRepository;
+        this.cacheService = cacheService;
+        this.meterRegistry = meterRegistry;
     }
 
 
@@ -75,20 +90,29 @@ public class WeatherForecastService {
     //TODO: Na taj nacin bi mogli optimizirati hibernate i ovo bi bilo Transational(readonly onda)
     // TODO: dodati koridante za opemMeteo ako ne radi kordiante opemWeeather tj ako se ne moze pronaci grad
     @Transactional
-    public WeatherForecastEntity getWeather(String cityName) {
-        CityEntity city = cityService.getOrCreateCity(cityName);
-        WeatherResponse responseWeather = fetchWeatherData(city);
+    public WeatherForecastEntity getWeather(String city) {
+        String cacheKey = CACHE_KEY_PREFIX + city;
+        WeatherForecastEntity cachedForecast = (WeatherForecastEntity) cacheService.getCachedData(cacheKey);
+        if (cachedForecast != null) {
+            log.info("Returning cached weather data for {}", city);
+            return cachedForecast;
+        }
+        CityEntity cityEntity = cityService.getOrCreateCity(city);
+        WeatherResponse responseWeather = fetchWeatherData(cityEntity);
         if (responseWeather == null) {
-            throw new RuntimeException("Failed to fetch weather data for city: " + cityName);
+            throw new RuntimeException("Failed to fetch weather data for cityEntity: " + city);
         }
         System.out.println("weather response " + responseWeather);
         float uvIndex = fetchUVData(responseWeather.cords().lat(), responseWeather.cords().lng());
-        WeatherForecastEntity forecast = WeatherMapper.toWeatherForecast(city, responseWeather, uvIndex);
+        WeatherForecastEntity forecast = WeatherMapper.toWeatherForecast(cityEntity, responseWeather, uvIndex);
         forecast.setForecastType(ForecastType.CURRENT);
+        // chance
+        cacheService.cacheData(cacheKey, forecast, CACHE_TTL);
+        log.info("Cached new weather data for {}", city);
         return forecastRepository.save(forecast);
     }
 
-
+    @Timed(value = "weather.forecast.fetch", description = "Time taken to fetch weather forecast")
     @Transactional
     public List<WeatherForecastEntity> getHourly(String city){
         CityEntity cityEntity = cityService.getOrCreateCity(city);
@@ -96,6 +120,7 @@ public class WeatherForecastService {
         LocalDateTime end = now.plusHours(24);
         Optional<List<WeatherForecastEntity>> existingForeCastOpt =
                 forecastRepository.findByCityAndForecastTypeAndDateTimeBetween(String.valueOf(cityEntity), ForecastType.HOURLY, now, end);
+        meterRegistry.counter("weather.forecast.requests", "city", city).increment();
         if(existingForeCastOpt.isPresent() && !existingForeCastOpt.get().isEmpty()){
             log.info("Returning existing hourly forecasts for {}", city);
             return existingForeCastOpt.get();
@@ -108,9 +133,9 @@ public class WeatherForecastService {
 
 
     @Transactional(readOnly = true)
-    public List<WeatherForecastEntity> getDaily(String cityName) {
+    public List<WeatherForecastEntity> getDaily(String city) {
         return transactionTemplate.execute(status -> {
-        CityEntity city = cityService.getOrCreateCity(cityName);
+        CityEntity cityEntity = cityService.getOrCreateCity(city);
         LocalDate now = LocalDate.now();
         LocalDate end = now.plusDays(7);
 
@@ -119,13 +144,13 @@ public class WeatherForecastService {
 
 
         Optional<List<WeatherForecastEntity>> existingForecastOpt =
-                forecastRepository.findByCityAndForecastTypeAndDateTimeBetween(String.valueOf(city), ForecastType.DAILY, startDateTime, endDateTime);
+                forecastRepository.findByCityAndForecastTypeAndDateTimeBetween(String.valueOf(cityEntity), ForecastType.DAILY, startDateTime, endDateTime);
         if (existingForecastOpt.isPresent() && !existingForecastOpt.get().isEmpty()) {
-            log.info("Returning existing daily forecasts for {}", cityName);
+            log.info("Returning existing daily forecasts for {}", city);
             return existingForecastOpt.get();
         } else {
-            log.info("Fetching new daily forecasts for {}", cityName);
-            return fetchAndSaveDailyForecast(city);
+            log.info("Fetching new daily forecasts for {}", city);
+            return fetchAndSaveDailyForecast(cityEntity);
         }
         });
     }
@@ -147,8 +172,8 @@ public class WeatherForecastService {
     }
 
     @Transactional
-    public void addFavoriteCity(String username, String cityName, String email) {
-            log.info("Adding favorite city {} for user {}", cityName, username);
+    public void addFavoriteCity(String username, String city, String email) {
+            log.info("Adding favorite cityEntity {} for user {}", city, username);
 
             UserEntity user = userRepository.findByUsername(username)
                     .orElseGet(() -> {
@@ -161,22 +186,22 @@ public class WeatherForecastService {
                         return userRepository.save(newUser);
                     });
 
-            CityEntity city = cityRepository.findByName(cityName)
+            CityEntity cityEntity = cityRepository.findByName(city)
                     .orElseGet(() -> {
                         CityEntity newCity = new CityEntity();
-                        newCity.setName(cityName);
+                        newCity.setName(city);
                         return cityRepository.save(newCity);
                     });
 
         log.info("User favorite cities before adding: {}", user.getFavoriteCities());
-        log.info("City to addd: {}", city);
+        log.info("City to addd: {}", cityEntity);
 
-        if (!user.getFavoriteCities().contains(city)) {
-            user.getFavoriteCities().add(city);
+        if (!user.getFavoriteCities().contains(cityEntity)) {
+            user.getFavoriteCities().add(cityEntity);
             userRepository.save(user);
-            log.info("Successfully added {} to favorites for user {}", cityName, username);
+            log.info("Successfully added {} to favorites for user {}", city, username);
         } else {
-            log.info("City {} is already a favorite for user {}", cityName, username);
+            log.info("City {} is already a favorite for user {}", city, username);
         }
         log.info("User favorite cities after adding: {}", user.getFavoriteCities());
 
@@ -219,7 +244,7 @@ public class WeatherForecastService {
         String url = UriComponentsBuilder.fromHttpUrl(openMeteoUrl)
                 .queryParam("latitude", lat)
                 .queryParam("longitude", lon)
-                .queryParam("daily", "temperature_2m_max,weather_code,apparent_temperature_max,relative_humidity_2m_max,windspeed_10m_max,uv_index_max")
+                .queryParam("daily", "temperature_2m_max,temperature_2m_min,weather_code,apparent_temperature_max,relative_humidity_2m_max,windspeed_10m_max,uv_index_max")
                 // .queryParam("daily", "temperature_2m_max,weather_code,apparent_temperature_max,windspeed_10m_max,uv_index_max")
                 .queryParam("forecast_days", 7)
                 .toUriString();

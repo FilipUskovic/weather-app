@@ -2,6 +2,7 @@ package com.weather.weatherapp.weatherForecast;
 
 import com.weather.weatherapp.weatherForecast.Predictions.dto.TemperatureExtremes;
 import com.weather.weatherapp.weatherForecast.Predictions.dto.TemperatureTrend;
+import com.weather.weatherapp.weatherForecast.Predictions.dto.WeatherExtreme;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -91,6 +92,17 @@ public interface WeatherForecastRepository extends JpaRepository<WeatherForecast
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+    @Query("SELECT new com.weather.weatherapp.weatherForecast.Predictions.dto.WeatherExtreme(MAX(w.maxTemperature), MIN(w.minTemperature), " +
+            "MAX(w.windSpeed), MAX(w.humidity)) " +
+            "FROM WeatherForecastEntity w " +
+            "WHERE w.city = :city AND w.dateTime BETWEEN :startDate AND :endDate")
+    WeatherExtreme getWeatherExtremes(@Param("city") String city,
+                                      @Param("startDate") LocalDateTime startDate,
+                                      @Param("endDate") LocalDateTime endDate);
+
+
+
 
     @Query("SELECT AVG(w.temperature) FROM WeatherForecastEntity w " +
             "WHERE w.city = :cityName AND FUNCTION('MONTH', w.dateTime) = :month")

@@ -1,4 +1,4 @@
-package com.weather.weatherapp.config;
+package com.weather.weatherapp.config.caching;
 
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;

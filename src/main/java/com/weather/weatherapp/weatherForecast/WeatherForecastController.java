@@ -3,6 +3,7 @@ package com.weather.weatherapp.weatherForecast;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.weatherapp.auth.jtw.JwtService;
 import com.weather.weatherapp.city.FavoriteCityRequest;
+import io.micrometer.core.annotation.Timed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -39,6 +40,7 @@ public class WeatherForecastController {
     // 3.  Trebamo dodatna polja ili modficiratu podatke za api
 
     // radi no dodati potake za min temo max temo itd
+    @Timed(value = "api.weather.get", description = "Time taken to return weather data")
     @GetMapping("/hourly/{city}")
     public ResponseEntity<List<WeatherForecastEntity>> getHourlyForecast(@PathVariable String city) {
         List<WeatherForecastEntity> foreCast = weatherForecastService.getHourly(city);

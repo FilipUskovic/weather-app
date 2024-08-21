@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class WeatherMapper {
+// TODO HISTORICAL DATA DODATI
 
     public static WeatherForecastEntity toWeatherForecast(CityEntity city, WeatherResponse weather, float uvIndex) {
         WeatherForecastEntity forecast = new WeatherForecastEntity();
@@ -55,20 +56,18 @@ public class WeatherMapper {
 
     public static List<WeatherForecastEntity> toDailyWeatherForecasts(CityEntity city, OpenMeteResponse response) {
         List<WeatherForecastEntity> forecasts = new ArrayList<>();
-
         if (response.daily() == null || response.daily().time() == null || response.daily().temperatureMax() == null) {
             throw new RuntimeException("Missing daily data for weather forecast.");
         }
-
         for (int i = 0; i < response.daily().time().size(); i++) {
             int wmoCode = Integer.parseInt(response.daily().description().get(i)); // Dohvati WMO kod
             String weatherDescription = WeatherMapper.getDescriptionForCode(wmoCode);
             WeatherForecastEntity forecast = new WeatherForecastEntity();
             forecast.setId(null);  // Eksplicitno postavljamo ID na null
             forecast.setCity(city.getName());
-            forecast.setTemperature(response.daily().temperatureMax().get(i).floatValue());
+            forecast.setMaxTemperature(response.daily().temperatureMax().get(i).floatValue());
+            forecast.setMinTemperature(response.daily().temperatureMin().get(i).floatValue());
             forecast.setDescription(weatherDescription);
-         //   forecast.setMinTemperature(daily.temperatureMin().get(i).floatValue());
             forecast.setDateTime(LocalDate.parse(response.daily().time().get(i)).atStartOfDay());
             forecast.setUvIndex((int) Math.round(response.daily().uvIndexMax().get(i)));
             forecast.setWindSpeed(response.daily().windspeedMax().get(i).floatValue());
