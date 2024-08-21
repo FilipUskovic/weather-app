@@ -15,12 +15,13 @@ public class UserController {
         this.userService = userService;
     }
 
+    // radi
     @PostMapping
     public ResponseEntity<UserEntity> createUser(@RequestParam String username) {
         return ResponseEntity.ok(userService.createUser(username));
     }
-
-    @PostMapping("/{username}/favorites")
+    // radio
+    @PostMapping("favorites/{username}/")
     public ResponseEntity<Void> addFavoriteCity(@PathVariable String username, @RequestParam String city) {
         userService.addFavoriteCity(username, city);
         return ResponseEntity.ok().build();
@@ -31,7 +32,7 @@ public class UserController {
         userService.removeFavoriteCity(username, city);
         return ResponseEntity.ok().build();
     }
-
+    //radi
     @GetMapping("/{username}/favorites")
     public ResponseEntity<List<String>> getFavoriteCities(@PathVariable String username) {
         return ResponseEntity.ok(userService.getFavoriteCities(username));

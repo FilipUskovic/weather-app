@@ -28,13 +28,14 @@ public class WeatherMapper {
                return forecast;
     }
 
+
+
     public static List<WeatherForecastEntity> toHourlyWeatherForecasts(CityEntity city, OpenMeteResponse response) {
         return IntStream.range(0, response.hourly().time().size())
                 .mapToObj(res -> {
                     int wmoCode = Integer.parseInt(response.hourly().apperiance().get(res)); // Dohvati WMO kod
                     String weatherDescription = WeatherMapper.getDescriptionForCode(wmoCode); // Pretvori u opis
                     return new WeatherForecastEntity(
-                            null, // ID će se automatski generirati ako je autogeneriran u bazi podataka
                             city.getName(),
                             response.hourly().temperature2m().get(res).floatValue(),
                             weatherDescription,

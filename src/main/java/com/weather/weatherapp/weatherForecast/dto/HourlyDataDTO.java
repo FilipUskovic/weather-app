@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public record HourlyDataDTO(
+        String city,
         List<String> time,
         @JsonProperty("temperature_2m")
         List<Double> temperature2m,
