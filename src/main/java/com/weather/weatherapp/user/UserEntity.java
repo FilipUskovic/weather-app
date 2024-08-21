@@ -9,7 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.*;
 
 @Entity
-@Table(name = "user")
+//@Table(name = "user")
 public class UserEntity implements UserDetails {
 
     @Id

@@ -1,6 +1,5 @@
 package com.weather.weatherapp.weatherForecast;
 
-import com.weather.weatherapp.city.CityEntity;
 import com.weather.weatherapp.weatherForecast.Predictions.dto.TemperatureExtremes;
 import com.weather.weatherapp.weatherForecast.Predictions.dto.TemperatureTrend;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -101,5 +100,5 @@ public interface WeatherForecastRepository extends JpaRepository<WeatherForecast
     );
 
     //findTopByCityOrderByDateTimeDesc
-    Optional<WeatherForecastEntity> findTopByCityOrderByDateTimeDesc (CityEntity city);
+    Optional<WeatherForecastEntity> findTopByCityOrderByDateTimeDesc (String city);
 }

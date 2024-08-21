@@ -82,11 +82,10 @@ public class WeatherForecastController {
     // weather alert
 
 
-    @PostMapping("/check-alerts")
+    @PostMapping("/check")
     public ResponseEntity<String> manuallyCheckAlerts() {
         weatherAlertService.checkAndSendAlerts();
         return ResponseEntity.ok("Alert check initiated manually");
     }
-
 
 }
