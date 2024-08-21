@@ -41,7 +41,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/cities/**").permitAll()
                         .requestMatchers("/api/weather/**").permitAll()
                         .requestMatchers("/api/backup/**").permitAll()
-                        .requestMatchers("/api/email/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
