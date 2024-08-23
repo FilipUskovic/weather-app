@@ -1,4 +1,4 @@
-package com.weather.weatherapp.weatherForecast.dto;
+package com.weather.weatherapp.providers.dto;
 
 public record DescriptionDTO(String description) {
 }

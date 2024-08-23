@@ -1,11 +1,11 @@
 package com.weather.weatherapp.config.backup;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @RequestMapping("/api/backup")
 public class BackUpController {
 
+    private static final Logger log = LoggerFactory.getLogger(BackUpController.class);
     private final BackUpService backupService;
 
 
@@ -21,8 +22,10 @@ public class BackUpController {
     }
 
     @PostMapping("/create")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<String> createBackup() {
         try {
+
             backupService.backupAllData();
             return ResponseEntity.ok("Backup created successfully");
         } catch (Exception e) {
@@ -31,6 +34,7 @@ public class BackUpController {
     }
 
     @PostMapping("/restore")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<String> restoreBackup(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime backupTime) {
         try {
             backupService.restoreData(backupTime);
@@ -39,4 +43,7 @@ public class BackUpController {
             return ResponseEntity.internalServerError().body("Failed to restore backup: " + e.getMessage());
         }
     }
+
+
+
 }

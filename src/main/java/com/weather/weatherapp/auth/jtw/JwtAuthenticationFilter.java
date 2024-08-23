@@ -32,18 +32,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        final String requestPath = request.getServletPath();
+       /*
+        if (requestPath.contains("/api/auth") || requestPath.startsWith("/swagger-ui")) {
             filterChain.doFilter(request, response);
             return;
         }
+
+        */
+        final String authHeader = request.getHeader("Authorization");
+        logger.info("Auth header: {}" + authHeader);
+        final String jwt;
+        final String userEmail;
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.info("No valid auth header found");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         jwt = authHeader.substring(7);
         userEmail = jwtService.extractEmail(jwt);
         logger.info("email extracted from jwt: " + userEmail);
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailService.loadUserByUsername(userEmail);
+            logger.info("Loaded user details: {}" + userDetails);
+
             if (jwtService.isTokenValid(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
@@ -54,6 +67,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                logger.info("Authentication set in SecurityContext");
+            }else {
+                logger.info("Token is not valid");
+
             }
         }
         filterChain.doFilter(request, response);

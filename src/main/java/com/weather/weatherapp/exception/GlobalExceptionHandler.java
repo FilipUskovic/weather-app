@@ -68,4 +68,14 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(message, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(CityNotFoundException.class)
+    public ResponseEntity<String> handleCityNotFoundException(CityNotFoundException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(CityAlreadyExistsException.class)
+    public ResponseEntity<String> handleCityAlreadyExistsException(CityAlreadyExistsException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
+    }
 }

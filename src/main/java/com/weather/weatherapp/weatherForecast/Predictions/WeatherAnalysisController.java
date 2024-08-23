@@ -5,10 +5,7 @@ import com.weather.weatherapp.weatherForecast.Predictions.dto.TemperatureTrend;
 import com.weather.weatherapp.weatherForecast.Predictions.dto.WeatherExtreme;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,8 +17,10 @@ public class WeatherAnalysisController {
 
     private final WeatherAnalysisService weatherAnalysisService;
 
+
     public WeatherAnalysisController(WeatherAnalysisService weatherAnalysisService) {
         this.weatherAnalysisService = weatherAnalysisService;
+
     }
 
 
@@ -69,4 +68,5 @@ public class WeatherAnalysisController {
             return ResponseEntity.internalServerError().body(false);
         }
     }
+
 }

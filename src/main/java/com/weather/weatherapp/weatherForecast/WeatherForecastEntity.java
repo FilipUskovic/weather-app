@@ -32,6 +32,7 @@ public class WeatherForecastEntity {
     private int humidity;
     private float windSpeed;
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private ForecastType forecastType;
 
     @Column(name = "feels_like")

@@ -9,4 +9,5 @@ public interface CityRepository extends JpaRepository<CityEntity, Long>{
     Optional<CityEntity> findByName(String name);
 
     boolean existsByName(String name);
+
 }
