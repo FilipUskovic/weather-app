@@ -5,7 +5,6 @@ import com.weather.weatherapp.city.CityService;
 import com.weather.weatherapp.providers.dto.*;
 import com.weather.weatherapp.weatherForecast.*;
 import com.weather.weatherapp.weatherForecast.dto.*;
-import com.weather.weatherapp.weatherForecast.dto.response.WeatherForecastResponseDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +13,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -22,7 +20,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -30,13 +27,11 @@ import java.util.Optional;
 public class WeatherProviderServis {
     private static final Logger log = LoggerFactory.getLogger(WeatherProviderServis.class);
 
-    private final CityService cityService;
     private final RestTemplate restTemplate;
     private final String apiKey;
     private final String openUvKey;
     private final WeatherForecastRepository forecastRepository;
     private final TransactionTemplate transactionTemplate;
-    private final WeatherMapper mapper;
 
 
 
@@ -44,14 +39,13 @@ public class WeatherProviderServis {
                                  RestTemplate restTemplate,
                                  @Value("${weather_api_key}") String apiKey,
                                  @Value("${open_UV_index}") String openUvKey,
-                                 WeatherForecastRepository forecastRepository, TransactionTemplate transactionTemplate, WeatherMapper mapper) {
-        this.cityService = cityService;
+                                 WeatherForecastRepository forecastRepository, TransactionTemplate transactionTemplate) {
         this.restTemplate = restTemplate;
         this.apiKey = apiKey;
         this.openUvKey = openUvKey;
         this.forecastRepository = forecastRepository;
         this.transactionTemplate = transactionTemplate;
-        this.mapper = mapper;
+
     }
 
 
@@ -210,10 +204,10 @@ public class WeatherProviderServis {
     public WeatherForecastEntity fetchOpenMeteoWeather(CityEntity city, Coordinates coords) {
         OpenMeteResponse hourlyResponse = fetchOpenMeteoHourlyData(coords.latitude(), coords.longitude());
         int currentHourIndex = LocalDateTime.now().getHour();
-
         return ProviderMapper.toWeatherForecastFromOpenMeteo(city, hourlyResponse, currentHourIndex);
     }
 
+/*
     @Transactional(readOnly = true)
     public WeatherForecastResponseDTO getWeatherFromOpenMeteo(String city) {
         CityEntity cityEntity = cityService.getOrCreateCity(city);
@@ -224,5 +218,7 @@ public class WeatherProviderServis {
         forecast.setForecastType(ForecastType.CURRENT);
         return mapper.convertToDTO(forecastRepository.save(forecast));
     }
+
+ */
 
 }

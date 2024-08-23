@@ -64,6 +64,19 @@ public class AuthenticationService {
     }
 
 
+    public AuthenticationResponse authenticateEmailAndPassword(String email, String password) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password)
+        );
+
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String jwtToken = jwtService.generateToken(user);
+        return new AuthenticationResponse(jwtToken);
+    }
+
+
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         log.info("Pokušaj autentikacije za korisnika: {}", request.email());
 
@@ -90,58 +103,4 @@ public class AuthenticationService {
         return new AuthenticationResponse(jwtToken);
     }
 
-
-
-
-
-    /*
-    public AuthenticationResponse register(RegisterRequest request) {
-        log.info("Pokušaj registracije za korisnika: {}", request.email());
-
-        if (userRepository.findByEmail(request.email()).isPresent()) {
-            log.warn("Pokušaj registracije s postojećom email adresom: {}", request.email());
-            throw new RuntimeException("Email already registered");
-        }
-
-        var user = new UserEntity();
-        user.setUsername(request.username());
-        user.setEmail(request.email());
-        user.setPassword(passwordEncoder.encode(request.password()));
-        user.setRole(Role.USER);
-        userRepository.save(user);
-        log.info("Uspješno registriran novi korisnik: {}", user.getEmail());
-
-        Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("role", user.getRole().name());
-
-        String jwtToken = jwtService.generateToken(extraClaims, user);
-        return new AuthenticationResponse(jwtToken);
-    }
-
-
- */
-
-
-  /*
-    public AuthenticationResponse register(RegisterRequest request) {
-        var user = new UserEntity();
-        user.setUsername(request.username());
-        user.setEmail(request.email());
-        user.setPassword(passwordEncoder.encode(request.password()));
-        user.setRole(Role.USER);
-        userRepository.save(user);
-        var jwtToken = jwtService.generateToken(new HashMap<>(), user);
-        return new AuthenticationResponse(jwtToken);
-    }
-
-    public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.username(), request.password()));
-        // mozda treba findByEmail
-        var user = userRepository.findByUsername(request.username())
-                .orElseThrow();
-        var jwtToken = jwtService.generateToken(new HashMap<>(), user);
-        return new AuthenticationResponse(jwtToken);
-    }
-
-   */
 }

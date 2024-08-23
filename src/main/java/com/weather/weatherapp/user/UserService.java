@@ -61,11 +61,9 @@ public class UserService {
 
     @Transactional
     public UserResponseDTO addFavoriteCity(AddFavoriteCityRequestDTO request) {
-        // Dohvaćanje korisnika ili bacanje iznimke ako ne postoji
         UserEntity user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new UserNotFoundException("Korisnik nije pronađen: " + request.username()));
         CityEntity city = cityService.getOrCreateCity(request.cityName());
-        // Provjera da li je grad već u listi omiljenih gradova
         if (user.getFavoriteCities().contains(city)) {
             throw new DuplicateFavoriteCityException("Grad " + request.cityName() + " je već omiljeni grad za korisnika " + request.username());
         }
@@ -79,7 +77,6 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<String> getFavoriteCities(String username) {
-        // Dohvaćanje korisnika ili bacanje iznimke ako ne postoji
         return userRepository.findByUsername(username)
                 .map(user -> user.getFavoriteCities().stream()
                         .map(CityEntity::getName)

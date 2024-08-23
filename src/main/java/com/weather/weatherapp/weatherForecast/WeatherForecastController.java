@@ -1,6 +1,7 @@
 package com.weather.weatherapp.weatherForecast;
 
 import com.weather.weatherapp.auth.jtw.JwtService;
+import com.weather.weatherapp.config.caching.WeatherCacheService;
 import com.weather.weatherapp.exception.CityNotFavoriteException;
 import com.weather.weatherapp.exception.CityNotFoundException;
 import com.weather.weatherapp.exception.UserNotFoundException;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/weather")
@@ -78,7 +78,26 @@ public class WeatherForecastController {
         }
     }
 
-    @GetMapping("/get-favorites")
+    @GetMapping("/favorites")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<String>> getFavoriteCities(@RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7).trim();
+            String email = jwtService.extractEmail(token);
+            List<String> favorites = weatherForecastService.getFavoriteCitiesByEmail(email);
+            return ResponseEntity.ok(favorites);
+        } catch (UserNotFoundException e) {
+            log.error("Korisnik nije pronađen pri dohvaćanju omiljenih gradova", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (Exception e) {
+            log.error("Greška pri dohvaćanju omiljenih gradova", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+
+
+    @GetMapping("/favorites-weather")
     public ResponseEntity<List<WeatherForecastResponseDTO>> getFavoritesCitiesWeather(@RequestParam String username) {
         log.info("Zahtjev za prognozu omiljenih gradova za korisnika: {}", username);
         try {
@@ -93,13 +112,38 @@ public class WeatherForecastController {
         }
     }
 
-    @PostMapping("/add-favorites")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+
+
+
+    @PostMapping("/favorites")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> addFavoriteCity(@RequestBody AddFavoriteCityRequestDTO request,
+                                             @RequestHeader("Authorization") String authHeader) {
+        log.info("Primljen zahtjev za dodavanje omiljenog grada: {}", request);
+        try {
+            String token = authHeader.substring(7).trim();
+            String email = jwtService.extractEmail(token);
+            List<String> updatedFavorites = weatherForecastService.addFavoriteCityWithoutUsername(email, request.cityName());
+            return ResponseEntity.ok(updatedFavorites);
+        } catch (UserNotFoundException | CityNotFoundException e) {
+            log.error("Greška pri dodavanju omiljenog grada", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Neočekivana greška pri dodavanju omiljenog grada", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Neuspjelo dodavanje omiljenog grada");
+        }
+    }
+
+
+
+    @PostMapping("/favorites-weather")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> addFavoriteCityWithWeather(@RequestBody AddFavoriteCityRequestDTO request,
                                              @RequestHeader(value = "Authorization", required = false) String authHeader) {
         log.info("Primljen zahtjev za dodavanje omiljenog grada: {}", request);
         try {
-            String email = (authHeader != null) ? jwtService.extractEmail(authHeader) : "default@example.com";
+         //   String email = (authHeader != null) ? jwtService.extractEmail(authHeader) : "default@example.com";
+            String email = jwtService.extractEmail(authHeader.substring(7));
             weatherForecastService.addFavoriteCity(request.username(), request.cityName(), email);
             return ResponseEntity.ok("Omiljeni grad uspješno dodan");
         } catch (UserNotFoundException | CityNotFoundException e) {
@@ -111,9 +155,12 @@ public class WeatherForecastController {
         }
     }
 
-    @DeleteMapping("/delete-favorites")
+
+
+
+    @DeleteMapping("/favorites-weather")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<?> removeFavoriteCity(@RequestParam String username, @RequestParam String city) {
+    public ResponseEntity<?> removeFavoriteCityWeather(@RequestParam String username, @RequestParam String city) {
         log.info("Zahtjev za uklanjanje omiljenog grada {} za korisnika {}", city, username);
         try {
             weatherForecastService.removeFavoriteCity(username, city);
@@ -127,6 +174,23 @@ public class WeatherForecastController {
         } catch (Exception e) {
             log.error("Neočekivana greška pri uklanjanju omiljenog grada", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Neuspjelo uklanjanje omiljenog grada");
+        }
+    }
+
+    @DeleteMapping("/favorites/{city}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> removeFavoriteCity(@PathVariable String city, @RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7).trim();
+            String email = jwtService.extractEmail(token);
+            List<String> updatedFavorites = weatherForecastService.removeFavoriteCityWithoutWeather(email, city);
+            return ResponseEntity.ok(updatedFavorites);
+        } catch (UserNotFoundException | CityNotFoundException e) {
+            log.error("Error removing favorite city", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error removing favorite city", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to remove favorite city");
         }
     }
 
@@ -153,6 +217,7 @@ public class WeatherForecastController {
 
     }
 
+    // ne pograni se u embed tablvicu historical_data
     @GetMapping("/historical/{city}")
     public ResponseEntity<HistoricalDataEntry> getHistoricalWeather(
             @PathVariable String city,

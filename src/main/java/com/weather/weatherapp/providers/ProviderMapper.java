@@ -1,6 +1,5 @@
 package com.weather.weatherapp.providers;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.weather.weatherapp.city.CityEntity;
 import com.weather.weatherapp.weatherForecast.ForecastType;
 import com.weather.weatherapp.weatherForecast.WeatherForecastEntity;

@@ -4,7 +4,6 @@ import com.weather.weatherapp.config.caching.CachingRedisService;
 import com.weather.weatherapp.weatherForecast.Predictions.dto.TemperatureExtremes;
 import com.weather.weatherapp.weatherForecast.Predictions.dto.TemperatureTrend;
 import com.weather.weatherapp.weatherForecast.Predictions.dto.WeatherExtreme;
-import com.weather.weatherapp.weatherForecast.WeatherCacheService;
 import com.weather.weatherapp.weatherForecast.WeatherForecastRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -26,9 +26,9 @@ public class CityController {
     public ResponseEntity<CityDTO> createCity(@RequestBody CityRequest request) {
         try {
             CityDTO cityResponse = cityService.createCity(request);
-            return new ResponseEntity<>(cityResponse, HttpStatus.CREATED); // 201 Created
+            return new ResponseEntity<>(cityResponse, HttpStatus.CREATED);
         } catch (CityAlreadyExistsException ex) {
-            return new ResponseEntity<>(null, HttpStatus.CONFLICT); // 409 Conflict
+            return new ResponseEntity<>(null, HttpStatus.CONFLICT);
         }
     }
 
@@ -37,17 +37,17 @@ public class CityController {
     public ResponseEntity<List<CityDTO>> getAllCities() {
         List<CityDTO> cities = cityService.getAllCities();
         if (cities.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT); // 204 No Content
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(cities, HttpStatus.OK); // 200 OK
+        return new ResponseEntity<>(cities, HttpStatus.OK);
     }
 
     @GetMapping("/{name}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<CityDTO> getCityByName(@PathVariable String name) {
         return cityService.getCityByName(name)
-                .map(cityResponse -> new ResponseEntity<>(cityResponse, HttpStatus.OK)) // 200 OK
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND)); // 404 Not Found
+                .map(cityResponse -> new ResponseEntity<>(cityResponse, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @PutMapping("/{id}")
@@ -55,9 +55,9 @@ public class CityController {
     public ResponseEntity<CityDTO> updateCity(@PathVariable Long id, @RequestBody CityRequest request) {
         try {
             CityDTO updatedCity = cityService.updateCity(id, request);
-            return new ResponseEntity<>(updatedCity, HttpStatus.OK); // 200 OK
+            return new ResponseEntity<>(updatedCity, HttpStatus.OK);
         } catch (CityNotFoundException ex) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404 Not Found
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
@@ -66,9 +66,9 @@ public class CityController {
     public ResponseEntity<Void> deleteCity(@PathVariable Long id) {
         try {
             cityService.deleteCity(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT); // 204 No Content
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (CityNotFoundException ex) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404 Not Found
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 }

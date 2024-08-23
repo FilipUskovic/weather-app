@@ -15,7 +15,6 @@ import com.weather.weatherapp.weatherForecast.dto.response.WeatherForecastRespon
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -76,7 +75,6 @@ public class WeatherDataService {
         List<WeatherForecastResponseDTO> result = forecasts.stream()
                 .map(mapper::convertToDTO)
                 .collect(Collectors.toList());
-
         cacheService.cacheData(cacheKey, result, CACHE_TTL);
         return result;
     }

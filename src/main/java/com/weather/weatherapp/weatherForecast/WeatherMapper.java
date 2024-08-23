@@ -8,10 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class WeatherMapper {
 
-
 // TODO HISTORICAL DATA DODATI
-
-
 
     public WeatherForecastResponseDTO convertToDTO(WeatherForecastEntity entity) {
         return new WeatherForecastResponseDTO(

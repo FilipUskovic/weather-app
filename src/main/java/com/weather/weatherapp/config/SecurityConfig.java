@@ -8,7 +8,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -44,8 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/user/**").authenticated()
                         .requestMatchers("/api/cities/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/weather/**").permitAll()
-                        .requestMatchers("/api/weather/analysis/**").permitAll()
+                        .requestMatchers("/api/weather/**", "/api/weather/analysis/**").permitAll()
                         .requestMatchers("/api/backup/**").hasAnyAuthority("ADMIN")
                         .anyRequest().authenticated()
                         )
@@ -81,13 +79,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
-/*
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
 
- */
 
 
 }
